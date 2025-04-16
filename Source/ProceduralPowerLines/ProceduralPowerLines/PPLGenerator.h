@@ -25,19 +25,22 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	void AddMeshesToSplinePoints();
+
+	UFUNCTION(BlueprintCallable)
+	void ClearSplineChildComponents();
+	
+	void ConnectCablesAndSockets();
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Components");
-	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components");
-	//TObjectPtr<USplineComponent> SplineComponent;
-	USplineComponent* Spline;
+	TObjectPtr<USplineComponent> Spline;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components");
-	USceneComponent* Root;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Components");
+	TObjectPtr<USceneComponent> Root;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite);
 	TObjectPtr<UStaticMesh> PlacedMesh;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite);
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite);
 	TArray<TObjectPtr<UStaticMesh>> PlacedMeshes;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite);

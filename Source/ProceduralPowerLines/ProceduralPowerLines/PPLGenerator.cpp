@@ -32,62 +32,11 @@ void APPLGenerator::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	AddMeshesToSplinePoints();
-	
-	for (int i = 0; i < PlacedMeshes.Num(); i++)
-	{
-		if (PlacedMeshes.Num() > i + 1)
-		{
-			TArray<UStaticMeshSocket*> MeshSockets =  PlacedMeshes[i]->GetSocketsByTag(FString("Power"));
-			TArray<UStaticMeshSocket*> NextMeshSockets =  PlacedMeshes[i + 1]->GetSocketsByTag(FString("Power"));
-			
-
-			for (int j = 0; j < MeshSockets.Num(); j++)
-			{
-				TObjectPtr<UCableComponent> CableComponent = NewObject<UCableComponent>(this, UCableComponent::StaticClass());
-				CableComponent->RegisterComponent();
-
-				FVector SplinePointLocation = Spline->GetLocationAtSplinePoint(i, ESplineCoordinateSpace::Local);
-				FRotator SplinePointRotation = Spline->GetRotationAtSplinePoint(i, ESplineCoordinateSpace::Local);
-				FVector WorldLocation = Spline->GetComponentTransform().TransformPosition(SplinePointLocation);
-				FTransform PointTransform = UKismetMathLibrary::MakeTransform(WorldLocation, SplinePointRotation);
-				FVector PointFinalLocation = UKismetMathLibrary::TransformLocation(PointTransform, MeshSockets[j]->RelativeLocation);
-				CableComponent->SetRelativeLocation(PointFinalLocation);
-				//UE_LOG(LogTemp, Warning, TEXT("SetRelativeLocation(PointFinalLocation) %f, %f, %f"), PointFinalLocation.X, PointFinalLocation.Y, PointFinalLocation.Z);
-
-				FVector SplineNextPointLocation = Spline->GetLocationAtSplinePoint(i + 1, ESplineCoordinateSpace::Local);
-				FRotator SplineNextPointRotation = Spline->GetRotationAtSplinePoint(i + 1, ESplineCoordinateSpace::Local);
-				FTransform NextPointTransform = UKismetMathLibrary::MakeTransform(SplineNextPointLocation, SplineNextPointRotation);
-				FVector NextPointFinalLocation = UKismetMathLibrary::TransformLocation(NextPointTransform, NextMeshSockets[j]->RelativeLocation);
-				CableComponent->EndLocation = NextPointFinalLocation;
-				//UE_LOG(LogTemp, Warning, TEXT("NextPointFinalLocation %f, %f, %f"), NextPointFinalLocation.X, NextPointFinalLocation.Y, NextPointFinalLocation.Z);
-
-				//Cable length
-				float Length = UKismetMathLibrary::Vector_Distance(SplinePointLocation, SplineNextPointLocation);
-				float CableLength = Length * CableLengthMultiplier;
-				CableComponent->CableLength = CableLength;
-
-				//Cable width
-				CableComponent->CableWidth = CableWidth;
-				CableComponent->SetVisibility(false);
-				CableComponent->SetVisibility(true);
-			}
-		}
-	}
-	
+	ConnectCablesAndSockets();
 }
 
 void APPLGenerator::AddMeshesToSplinePoints()
 {
-	//Remove existing meshes for Construction Script in the Editor
-	TArray<USceneComponent*> ChildComponents = Spline->GetAttachChildren();
-	for (USceneComponent* Child : ChildComponents)
-	{
-		if (Child && Child->IsA<UStaticMeshComponent>())
-		{
-			Child->DestroyComponent();
-		}
-	}
 	PlacedMeshes.Empty();
 
 	if (!Spline)
@@ -114,7 +63,62 @@ void APPLGenerator::AddMeshesToSplinePoints()
 			SplineMeshComponent->RegisterComponent();
 			
 			PlacedMeshes.Add(PlacedMesh);
-			RegisterAllComponents();
+		}
+	}
+}
+
+void APPLGenerator::ClearSplineChildComponents()
+{
+	//Remove existing meshes for Construction Script in the Editor
+	TArray<USceneComponent*> ChildComponents = Spline->GetAttachChildren();
+	for (USceneComponent* Child : ChildComponents)
+	{
+		if (Child && Child->IsA<UStaticMeshComponent>())
+		{
+			Child->DestroyComponent();
+		}
+	}
+}
+
+void APPLGenerator::ConnectCablesAndSockets()
+{
+	for (int i = 0; i < PlacedMeshes.Num(); i++)
+	{
+		if (PlacedMeshes.Num() > i + 1)
+		{
+			TArray<UStaticMeshSocket*> MeshSockets =  PlacedMeshes[i]->GetSocketsByTag(FString("Power"));
+			TArray<UStaticMeshSocket*> NextMeshSockets =  PlacedMeshes[i + 1]->GetSocketsByTag(FString("Power"));
+			
+			for (int j = 0; j < MeshSockets.Num(); j++)
+			{
+				TObjectPtr<UCableComponent> CableComponent = NewObject<UCableComponent>(this, UCableComponent::StaticClass());
+				CableComponent->RegisterComponent();
+
+				//Set start location for cable
+				FVector SplinePointLocation = Spline->GetLocationAtSplinePoint(i, ESplineCoordinateSpace::Local);
+				FRotator SplinePointRotation = Spline->GetRotationAtSplinePoint(i, ESplineCoordinateSpace::Local);
+				FVector WorldLocation = Spline->GetComponentTransform().TransformPosition(SplinePointLocation);
+				FTransform PointTransform = UKismetMathLibrary::MakeTransform(WorldLocation, SplinePointRotation);
+				FVector PointFinalLocation = UKismetMathLibrary::TransformLocation(PointTransform, MeshSockets[j]->RelativeLocation);
+				CableComponent->SetRelativeLocation(PointFinalLocation);
+
+				//Set end location for cable
+				FVector SplineNextPointLocation = Spline->GetLocationAtSplinePoint(i + 1, ESplineCoordinateSpace::Local);
+				FRotator SplineNextPointRotation = Spline->GetRotationAtSplinePoint(i + 1, ESplineCoordinateSpace::Local);
+				FTransform NextPointTransform = UKismetMathLibrary::MakeTransform(SplineNextPointLocation, SplineNextPointRotation);
+				FVector NextPointFinalLocation = UKismetMathLibrary::TransformLocation(NextPointTransform, NextMeshSockets[j]->RelativeLocation);
+				CableComponent->EndLocation = NextPointFinalLocation;
+				
+				//Cable length
+				float Length = UKismetMathLibrary::Vector_Distance(SplinePointLocation, SplineNextPointLocation);
+				float CableLength = Length * CableLengthMultiplier;
+				CableComponent->CableLength = CableLength;
+				
+				//Cable width
+				CableComponent->CableWidth = CableWidth;
+				CableComponent->SetVisibility(false);
+				CableComponent->SetVisibility(true);
+			}
 		}
 	}
 }
