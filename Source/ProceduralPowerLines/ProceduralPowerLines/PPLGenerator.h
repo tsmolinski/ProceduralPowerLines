@@ -8,7 +8,7 @@
 
 class USplineComponent;
 class USceneComponent;
-class USplineMeshComponent;
+class UHierarchicalInstancedStaticMeshComponent;
 
 UCLASS()
 class PROCEDURALPOWERLINES_API APPLGenerator : public AActor

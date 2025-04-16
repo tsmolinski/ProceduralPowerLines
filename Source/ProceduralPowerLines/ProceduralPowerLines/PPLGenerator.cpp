@@ -3,8 +3,8 @@
 
 #include "PPLGenerator.h"
 #include "Components/SplineComponent.h"
-#include "Components/SplineMeshComponent.h"
 #include "CableComponent.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Engine/StaticMeshSocket.h"
 
@@ -50,17 +50,18 @@ void APPLGenerator::AddMeshesToSplinePoints()
 	{
 		FVector Location = Spline->GetLocationAtSplinePoint(i, ESplineCoordinateSpace::Local);
 		FRotator Rotation = Spline->GetRotationAtSplinePoint(i, ESplineCoordinateSpace::Local);
-		
-		USplineMeshComponent* SplineMeshComponent = NewObject<USplineMeshComponent>(this);
-		if (SplineMeshComponent)
+
+		UHierarchicalInstancedStaticMeshComponent* HISMComponent = NewObject<UHierarchicalInstancedStaticMeshComponent>(this, UHierarchicalInstancedStaticMeshComponent::StaticClass());
+		if (HISMComponent)
 		{
-			SplineMeshComponent->SetStaticMesh(PlacedMesh);
-			SplineMeshComponent->SetWorldLocation(Location);
-			SplineMeshComponent->SetWorldRotation(Rotation);
-			//Needed to change scale a little bit beacause of mesh itself
-			SplineMeshComponent->SetWorldScale3D(FVector(0.2f, 1.f, 1.f));
-			SplineMeshComponent->AttachToComponent(Spline, FAttachmentTransformRules::KeepRelativeTransform);
-			SplineMeshComponent->RegisterComponent();
+			HISMComponent->SetStaticMesh(PlacedMesh);
+			HISMComponent->SetWorldScale3D(FVector(1.f, 1.f, 1.f));
+			HISMComponent->AttachToComponent(Spline, FAttachmentTransformRules::KeepRelativeTransform);
+			HISMComponent->AddInstance(FTransform(Rotation, Location));
+			
+			HISMComponent->SetCullDistances(8000.f, 13000.f);
+			
+			HISMComponent->RegisterComponent();
 			
 			PlacedMeshes.Add(PlacedMesh);
 		}
@@ -108,6 +109,8 @@ void APPLGenerator::ConnectCablesAndSockets()
 				FTransform NextPointTransform = UKismetMathLibrary::MakeTransform(SplineNextPointLocation, SplineNextPointRotation);
 				FVector NextPointFinalLocation = UKismetMathLibrary::TransformLocation(NextPointTransform, NextMeshSockets[j]->RelativeLocation);
 				CableComponent->EndLocation = NextPointFinalLocation;
+
+				CableComponent->SetCullDistance(10000.f);
 				
 				//Cable length
 				float Length = UKismetMathLibrary::Vector_Distance(SplinePointLocation, SplineNextPointLocation);
@@ -127,6 +130,5 @@ void APPLGenerator::ConnectCablesAndSockets()
 void APPLGenerator::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
 
